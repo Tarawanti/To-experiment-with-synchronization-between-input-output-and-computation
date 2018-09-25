@@ -1,0 +1,114 @@
+#include <atomic>
+#include <thread>
+#include <iostream>
+#include <vector>
+#include <string>
+
+#include <conio.h>
+#include <math.h>
+
+void ReadCin(std::atomic<bool>& run)
+{
+	char ch;
+    int buffer;
+
+	// while the variable 'run' is true waiting some symbol 
+	// if it is the 's' symbol set the 'run' variable the false value
+    while (run.load())
+    {
+		if (getch() == int('s'))
+        {
+			// set the 'run' variable the false value
+            run.store(false);
+        }
+
+    }
+}
+
+int main()
+{
+	// defining the number PI
+	double PI = 3.1415926;
+	
+	// defining an operation number variable
+	int operationsCount;
+
+	// infinite loop for square root calculation procedure <operationsCount> times
+	while(true)
+	{
+		// loop for getting <operationsCount> from the user
+		while (true)
+		{
+			// the first message
+			std::cout << "Enter an integer or q to quit." << std::endl;
+
+			// the variable for symbols sequence from the console
+			std::string inSymbols;
+
+			// getting symbols fron the console
+			std::cin >> inSymbols;
+
+			// if the user has entered 'q' exit the program
+			if (inSymbols == "q")
+			{
+				return 0;
+			}
+
+			// check the correctness of the number of operations of calculation of the square root, 
+			// it is required that it was a number without other characters
+			try
+			{
+				// stoi - this function converts the string to an number
+				operationsCount = std::stoi(inSymbols);
+			}
+			catch(...)
+			{
+				// if you entered not a number, but something else, ask again
+				std::cout << "Wrong input of the operations' count" << std::endl;
+				continue;
+			}
+
+			// if the input is correct, exit this loop
+			break;
+		}
+
+		// defining the variable 'run' to True
+		// Atomic types are types that encapsulate a value whose access is guaranteed to not cause data races 
+		// and can be used to synchronize memory accesses among different threads
+		// We use this variable in this thread(here we calculate square roots) and in the thread cinThread(where we can get the symbol 's' to stop calculating)
+		std::atomic<bool> run(true);
+
+		// defining the thread cinThread in which the function ReadCin works, and we also pass the 'run' variable reference to this function 
+		std::thread cinThread(ReadCin, std::ref(run));
+
+		// current result of the square root operation
+		double result = PI;
+
+		// square root operation counter
+		int opCounter = 0;
+
+		// while the variable 'run' is true do the square root operation and print the result to console
+		while (run.load()) // (***)
+		{
+			// getting the current result
+			result = sqrt(result);
+
+			// printing to console
+			std::cout << result << std::endl;
+		
+			// if we got <operationCount> operations then stop and go the message "Enter an integer or q to quit." at the start of the cycle
+			if (++opCounter == operationsCount)
+			{
+				break;
+			}
+		}
+	
+		// set the 'run' varuable to false, stopping the cicle (***)
+		run.store(false);
+
+		// waiting when cinThread ends
+		cinThread.join();
+	}
+
+    return 0;
+}
